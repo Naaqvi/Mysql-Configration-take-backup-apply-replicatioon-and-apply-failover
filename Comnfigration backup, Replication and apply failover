@@ -1,0 +1,117 @@
+########### FailOver in mysql ################
+###### Replication master/slave and backup ########### 
+###### Both master and slave server done this work ######
+Install ssh
+For change password
+passwd root
+ 
+nano /etc/ssh/sshd_config
+
+Uncomment this line  and write yes
+PermitRootLogin yes
+
+sudo apt install mysql-server
+
+To check 
+service --status-all
+
+MASTER SERVER 
+
+## Changing with in the config file
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+
+Bind address and sql address = master server ip 
+server-id = 1
+log_bin = /var/log/mysql/mysql-bin.log
+
+## sudo service mysql restart
+
+Enter the sql root
+mysql -uroot
+
+Run following commands in the psql 
+
+CREATE USER 'root'@'%' IDENTIFIED BY ‘Password’;
+ enter your passowrd at slave password
+
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+
+
+FLUSH PRIVILEGES;
+
+ FLUSH TABLES WITH READ LOCK;
+
+Exit from mysql 
+
+## Run following command
+mysqldump -u root -p --all-databases --master-data > data.sql
+
+scp data.sql root@172.17.0.2
+service mysql restart
+
+
+SLAVE SERVER:
+
+## Changing with in the config file
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+## Bind address and sql address = slave server ip 
+server-id = 2
+log_bin = /var/log/mysql/mysql-bin.log
+
+sudo service mysql restart
+mysql -uroot  < data.sql
+## After done 
+mysql -uroot
+STOP SLAVE;
+
+
+
+## Done 
+
+
+######################################    Failover  ##############################
+
+## Check bin log file position or name in master server with in my sql root
+SHOW MASTER STATUS;
+
+
+## Check user name 
+SELECT user, host FROM mysql.user;
+
+
+## Run on slave server with in mysql 
+CHANGE MASTER TO
+    MASTER_HOST = '172.17.0.3',
+    MASTER_PORT = 3306,
+    MASTER_USER = ‘root’,
+    MASTER_PASSWORD = ‘jugnu’,
+    MASTER_LOG_FILE = 'mysql-bin.000003',
+    MASTER_LOG_POS = 1145;
+
+
+## Run following command on both servers
+ALTER USER 'root'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY ‘password;
+
+## Run following command to create database in master server.
+create database saqlain; 
+
+## Run following command to crheck database in slave server
+show databases;
+
+
+## After all restart sql on both servers
+service mysql restart
+
+## After that to check  run following command on slave server
+show slave status\G;
+ If show  
+Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes 
+
+Then done
+
+
+https://hevodata.com/learn/mysql-master-slave-replication/
+## Follow article
